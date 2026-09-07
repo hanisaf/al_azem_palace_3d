@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { NavigationController } from './controls.js';
+import { CharacterController } from './character.js';
 import { LANDMARKS } from './landmarks.js';
 
 // Exact calibrated architectural palette from Blender al_azem_palace.blend
@@ -73,6 +74,7 @@ export class PalaceViewer {
     this.clock = new THREE.Clock();
 
     this.model = null;
+    this.character = null;
     this.waterMeshes = [];
     this.lanternLights = [];
     this.dirLight = null;
@@ -114,11 +116,14 @@ export class PalaceViewer {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.container.appendChild(this.renderer.domElement);
 
-    // 4. Controller
-    this.controller = new NavigationController(this.camera, this.renderer.domElement);
+    // 4. Character (Safadi)
+    this.character = new CharacterController(this.scene);
+
+    // 5. Controller
+    this.controller = new NavigationController(this.camera, this.renderer.domElement, this.character);
     this.controller.orbit.target.set(0, 3.5, 0);
 
-    // 5. Lighting Setup (calibrated to Blender's Late afternoon sun and bounce fill)
+    // 6. Lighting Setup (calibrated to Blender's Late afternoon sun and bounce fill)
     this.setupLighting();
 
     // 6. Sky & Ground plane
@@ -411,6 +416,11 @@ export class PalaceViewer {
 
     if (this.controller) {
       this.controller.update(delta);
+    }
+
+    // Keep character updated with idle breathing when not in person mode
+    if (this.character && this.controller?.mode !== 'person') {
+      this.character.update(delta, null, false);
     }
 
     // Subtle gentle motion on water surface

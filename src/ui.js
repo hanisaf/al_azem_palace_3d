@@ -129,27 +129,58 @@ export class UIController {
   setupModeSwitcher() {
     const orbitBtn = document.getElementById('btn-mode-orbit');
     const walkBtn = document.getElementById('btn-mode-walk');
+    const personBtn = document.getElementById('btn-mode-person');
 
     const setMode = (mode) => {
+      [orbitBtn, walkBtn, personBtn].forEach((b) => b?.classList.remove('active'));
+
       if (mode === 'orbit') {
         orbitBtn?.classList.add('active');
-        walkBtn?.classList.remove('active');
         this.walkBanner?.classList.remove('visible');
         this.touchControls?.classList.remove('active-touch');
         this.viewer?.controller?.setMode('orbit');
-      } else {
+      } else if (mode === 'walk') {
         walkBtn?.classList.add('active');
-        orbitBtn?.classList.remove('active');
-        this.walkBanner?.classList.add('visible');
+        if (this.walkBanner) {
+          this.walkBanner.innerHTML = `
+            <span>👁️ First-Person Mode</span>
+            <span>•</span>
+            <span>Use <span class="key-badge">W</span> <span class="key-badge">A</span> <span class="key-badge">S</span> <span class="key-badge">D</span> to walk</span>
+            <span>•</span>
+            <span>Click scene to look around</span>
+            <span>•</span>
+            <span><span class="key-badge">Shift</span> to sprint</span>
+          `;
+          this.walkBanner.classList.add('visible');
+        }
         if (document.body.classList.contains('touch-device')) {
           this.touchControls?.classList.add('active-touch');
         }
         this.viewer?.controller?.setMode('walk');
+      } else if (mode === 'person') {
+        personBtn?.classList.add('active');
+        if (this.walkBanner) {
+          this.walkBanner.innerHTML = `
+            <span>👤 Person Walk (Safadi)</span>
+            <span>•</span>
+            <span>Use <span class="key-badge">W</span> <span class="key-badge">A</span> <span class="key-badge">S</span> <span class="key-badge">D</span> to walk</span>
+            <span>•</span>
+            <span>Drag mouse to orbit camera</span>
+            <span>•</span>
+            <span><span class="key-badge">Shift</span> to run</span>
+          `;
+          this.walkBanner.classList.add('visible');
+        }
+        if (document.body.classList.contains('touch-device')) {
+          this.touchControls?.classList.add('active-touch');
+        }
+        this.viewer?.controller?.setMode('person');
       }
     };
 
     orbitBtn?.addEventListener('click', () => setMode('orbit'));
     walkBtn?.addEventListener('click', () => setMode('walk'));
+    personBtn?.addEventListener('click', () => setMode('person'));
   }
 
   setupAtmosphereSwitcher() {

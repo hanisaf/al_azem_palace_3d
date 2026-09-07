@@ -2,11 +2,12 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 export class NavigationController {
-  constructor(camera, domElement) {
+  constructor(camera, domElement, character = null) {
     this.camera = camera;
     this.domElement = domElement;
+    this.character = character;
 
-    this.mode = 'orbit'; // 'orbit' | 'walk'
+    this.mode = 'orbit'; // 'orbit' | 'walk' | 'person'
     this.isTransitioning = false;
     this.transitionProgress = 1;
     this.transitionDuration = 1.5;
@@ -35,6 +36,12 @@ export class NavigationController {
     this.lastMouseX = 0;
     this.lastMouseY = 0;
 
+    // Third-Person Character Walk State
+    this.thirdPersonYaw = 0; // angle around character
+    this.thirdPersonPitch = 0.28; // angle above character
+    this.thirdPersonDistance = 4.8; // meters from character (calibrated for 2x scale)
+    this.camTargetSmooth = new THREE.Vector3();
+
     // Movement bounds within palace
     this.bounds = {
       minX: -16.5,
@@ -46,6 +53,10 @@ export class NavigationController {
     this.setupKeyboard();
     this.setupMouse();
     this.setupTouch();
+  }
+
+  setCharacter(character) {
+    this.character = character;
   }
 
   setupKeyboard() {
@@ -103,8 +114,6 @@ export class NavigationController {
     });
 
     window.addEventListener('mousemove', (e) => {
-      if (this.mode !== 'walk') return;
-
       let dx = 0;
       let dy = 0;
 
@@ -118,19 +127,34 @@ export class NavigationController {
         this.lastMouseY = e.clientY;
       }
 
-      if (dx !== 0 || dy !== 0) {
+      if (dx === 0 && dy === 0) return;
+
+      if (this.mode === 'walk') {
         const sensitivity = 0.0028;
         this.walkEuler.y -= dx * sensitivity;
         this.walkEuler.x -= dy * sensitivity;
-        // Clamp vertical pitch to avoid flipping
         this.walkEuler.x = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.walkEuler.x));
         this.camera.quaternion.setFromEuler(this.walkEuler);
+      } else if (this.mode === 'person') {
+        const sensitivity = 0.0035;
+        this.thirdPersonYaw -= dx * sensitivity;
+        this.thirdPersonPitch += dy * sensitivity;
+        // Clamp pitch to avoid going under the floor or flipping over the head
+        this.thirdPersonPitch = Math.max(-0.06, Math.min(0.95, this.thirdPersonPitch));
       }
     });
 
-    // Pointer lock toggle when clicking canvas in walk mode
+    // Zoom distance with mouse wheel in person mode
+    this.domElement.addEventListener('wheel', (e) => {
+      if (this.mode === 'person') {
+        this.thirdPersonDistance += e.deltaY * 0.003;
+        this.thirdPersonDistance = Math.max(2.5, Math.min(8.5, this.thirdPersonDistance));
+      }
+    }, { passive: true });
+
+    // Pointer lock toggle when clicking canvas in walk / person mode
     this.domElement.addEventListener('click', () => {
-      if (this.mode === 'walk' && !this.isPointerLocked) {
+      if ((this.mode === 'walk' || this.mode === 'person') && !this.isPointerLocked) {
         this.domElement.requestPointerLock?.();
       }
     });
@@ -153,23 +177,31 @@ export class NavigationController {
     }, { passive: true });
 
     this.domElement.addEventListener('touchmove', (e) => {
-      if (this.mode !== 'walk' || e.touches.length !== 1) return;
+      if (e.touches.length !== 1) return;
 
       const dx = e.touches[0].clientX - touchStartX;
       const dy = e.touches[0].clientY - touchStartY;
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
 
-      const sensitivity = 0.0035;
-      this.walkEuler.y -= dx * sensitivity;
-      this.walkEuler.x -= dy * sensitivity;
-      this.walkEuler.x = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.walkEuler.x));
-      this.camera.quaternion.setFromEuler(this.walkEuler);
+      if (this.mode === 'walk') {
+        const sensitivity = 0.0035;
+        this.walkEuler.y -= dx * sensitivity;
+        this.walkEuler.x -= dy * sensitivity;
+        this.walkEuler.x = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.walkEuler.x));
+        this.camera.quaternion.setFromEuler(this.walkEuler);
+      } else if (this.mode === 'person') {
+        const sensitivity = 0.004;
+        this.thirdPersonYaw -= dx * sensitivity;
+        this.thirdPersonPitch += dy * sensitivity;
+        this.thirdPersonPitch = Math.max(-0.06, Math.min(0.95, this.thirdPersonPitch));
+      }
     }, { passive: true });
   }
 
   setMode(mode) {
     if (this.mode === mode) return;
+    const oldMode = this.mode;
     this.mode = mode;
 
     if (mode === 'orbit') {
@@ -177,14 +209,12 @@ export class NavigationController {
         document.exitPointerLock?.();
       }
       this.orbit.enabled = true;
-      // Re-orient orbit target in front of camera
       const dir = new THREE.Vector3();
       this.camera.getWorldDirection(dir);
       this.orbit.target.copy(this.camera.position).addScaledVector(dir, 15);
       this.orbit.update();
-    } else {
+    } else if (mode === 'walk') {
       this.orbit.enabled = false;
-      // If camera was in high aerial view or out of bounds, spawn in central courtyard facing South Iwan
       if (
         this.camera.position.y > 3.5 ||
         Math.abs(this.camera.position.x) > 13.0 ||
@@ -196,10 +226,35 @@ export class NavigationController {
         this.camera.position.y = this.eyeHeight;
         this.clampPosition(this.camera.position);
         this.walkEuler.setFromQuaternion(this.camera.quaternion, 'YXZ');
-        this.walkEuler.x = 0; // Level gaze
+        this.walkEuler.x = 0;
         this.walkEuler.z = 0;
       }
       this.camera.quaternion.setFromEuler(this.walkEuler);
+    } else if (mode === 'person') {
+      this.orbit.enabled = false;
+
+      // Ensure Safadi is spawned in an accessible courtyard area
+      if (this.character) {
+        this.character.setVisible(true);
+        if (
+          Math.abs(this.character.position.x) > 12.0 ||
+          Math.abs(this.character.position.z) > 24.0
+        ) {
+          this.character.spawnAt(0.0, -4.5, 0);
+        }
+
+        // Align camera behind character
+        this.thirdPersonYaw = this.character.rotationY;
+        this.thirdPersonPitch = 0.28;
+        this.camTargetSmooth.copy(this.character.getHeadPosition());
+
+        const camX = this.character.position.x + this.thirdPersonDistance * Math.cos(this.thirdPersonPitch) * Math.sin(this.thirdPersonYaw);
+        const camY = Math.max(0.4, this.camTargetSmooth.y + this.thirdPersonDistance * Math.sin(this.thirdPersonPitch));
+        const camZ = this.character.position.z + this.thirdPersonDistance * Math.cos(this.thirdPersonPitch) * Math.cos(this.thirdPersonYaw);
+
+        this.camera.position.set(camX, camY, camZ);
+        this.camera.lookAt(this.camTargetSmooth);
+      }
     }
   }
 
@@ -214,7 +269,6 @@ export class NavigationController {
     this.startTarget.copy(this.orbit.target);
     this.endTarget.copy(target);
 
-    // Disable controls while animating
     this.orbit.enabled = false;
   }
 
@@ -236,11 +290,10 @@ export class NavigationController {
         if (this.mode === 'orbit') {
           this.orbit.enabled = true;
           this.orbit.update();
-        } else {
+        } else if (this.mode === 'walk') {
           this.walkEuler.setFromQuaternion(this.camera.quaternion, 'YXZ');
         }
       } else {
-        // Smooth cubic ease-in-out
         const t = this.transitionProgress;
         const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
@@ -270,6 +323,38 @@ export class NavigationController {
         moveDir.normalize();
         this.camera.position.addScaledVector(moveDir, speed);
         this.clampPosition(this.camera.position);
+      }
+    } else if (this.mode === 'person') {
+      // Third-person character movement
+      if (this.character) {
+        // Compute horizontal forward and right vectors from camera orbit yaw
+        const forward = new THREE.Vector3(-Math.sin(this.thirdPersonYaw), 0, -Math.cos(this.thirdPersonYaw));
+        const right = new THREE.Vector3(Math.cos(this.thirdPersonYaw), 0, -Math.sin(this.thirdPersonYaw));
+
+        const moveDir = new THREE.Vector3();
+        if (this.moveState.forward) moveDir.add(forward);
+        if (this.moveState.backward) moveDir.sub(forward);
+        if (this.moveState.right) moveDir.add(right);
+        if (this.moveState.left) moveDir.sub(right);
+
+        if (moveDir.lengthSq() > 0.001) {
+          moveDir.normalize();
+        }
+
+        // Update character model and animation
+        this.character.update(delta, moveDir, this.moveState.sprint);
+
+        // Smooth follow camera
+        const charHead = this.character.getHeadPosition();
+        this.camTargetSmooth.lerp(charHead, Math.min(1.0, 10 * delta));
+
+        const targetCamX = this.camTargetSmooth.x + this.thirdPersonDistance * Math.cos(this.thirdPersonPitch) * Math.sin(this.thirdPersonYaw);
+        const targetCamY = Math.max(0.4, this.camTargetSmooth.y + this.thirdPersonDistance * Math.sin(this.thirdPersonPitch));
+        const targetCamZ = this.camTargetSmooth.z + this.thirdPersonDistance * Math.cos(this.thirdPersonPitch) * Math.cos(this.thirdPersonYaw);
+        const desiredCamPos = new THREE.Vector3(targetCamX, targetCamY, targetCamZ);
+
+        this.camera.position.lerp(desiredCamPos, Math.min(1.0, 12 * delta));
+        this.camera.lookAt(this.camTargetSmooth);
       }
     }
   }
