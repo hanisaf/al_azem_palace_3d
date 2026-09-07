@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Al Azm Palace, Damascus · 3D Architectural Exploration</title>
+  <meta name="description" content="Interactive 3D architectural exploration of Al Azm Palace (Damascus, Syria, 1749). Explore courtyards, ablaq masonry, fountains, and grand iwans in your web browser." />
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <!-- 3D Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="loader-emblem">
+      <div class="loader-emblem-ring"></div>
+      <div class="loader-emblem-inner">🏛️</div>
+    </div>
+    <h1 class="loader-title">Al Azm Palace</h1>
+    <div class="loader-arabic">قصر العظم · دمشق</div>
+    <div class="loader-subtitle">Interactive 3D Architectural Experience</div>
+    <div class="loader-bar-wrapper">
+      <div id="loader-bar" class="loader-bar"></div>
+    </div>
+    <div id="loader-status" class="loader-status">Streaming Palace Model · 0%</div>
+  </div>
+
+  <!-- Walk Mode Guide Banner -->
+  <div id="walk-banner">
+    <span>🚶 First-Person Mode</span>
+    <span>•</span>
+    <span>Use <span class="key-badge">W</span> <span class="key-badge">A</span> <span class="key-badge">S</span> <span class="key-badge">D</span> to walk</span>
+    <span>•</span>
+    <span>Click scene to look around</span>
+    <span>•</span>
+    <span><span class="key-badge">Shift</span> to sprint</span>
+  </div>
+
+  <!-- Main HUD Layer -->
+  <div class="hud-overlay">
+    <!-- Top Header -->
+    <header class="hud-header">
+      <div class="brand-badge glass-card">
+        <div class="brand-icon">🏛️</div>
+        <div class="brand-text-col">
+          <span class="brand-title">Al Azm Palace</span>
+          <span class="brand-sub">Damascus, 1749 CE · قصر العظم</span>
+        </div>
+      </div>
+
+      <div class="top-controls">
+        <!-- View Mode Segmented Control -->
+        <div class="segmented-group">
+          <button id="btn-mode-orbit" class="seg-btn active" title="Orbit & Aerial View">
+            <span>🪐</span> Orbit
+          </button>
+          <button id="btn-mode-walk" class="seg-btn" title="First-Person Walkthrough">
+            <span>🚶</span> Walk
+          </button>
+        </div>
+
+        <!-- Atmosphere / Lighting Switcher -->
+        <div class="segmented-group">
+          <button id="btn-atmo-day" class="seg-btn active" title="Daylight">
+            <span>☀️</span> Day
+          </button>
+          <button id="btn-atmo-sunset" class="seg-btn" title="Golden Hour">
+            <span>🌅</span> Golden
+          </button>
+          <button id="btn-atmo-night" class="seg-btn" title="Lantern Twilight">
+            <span>🌙</span> Night
+          </button>
+        </div>
+
+        <!-- Audio Courtyard Ambience -->
+        <button id="btn-audio" class="action-btn" title="Toggle Courtyard Fountain Sound">
+          <span>⛲</span>
+        </button>
+
+        <!-- Screenshot Capture -->
+        <button id="btn-screenshot" class="action-btn" title="Capture High-Res Photo">
+          <span>📷</span>
+        </button>
+
+        <!-- Palace History Modal -->
+        <button id="btn-info" class="action-btn" title="Historical & Architectural Information">
+          <span>ℹ️</span>
+        </button>
+
+        <!-- Controls Guide Modal -->
+        <button id="btn-help" class="action-btn" title="Controls Guide">
+          <span>⌨️</span>
+        </button>
+
+        <!-- Fullscreen -->
+        <button id="btn-fullscreen" class="action-btn" title="Toggle Fullscreen">
+          <span>⛶</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Bottom Landmark Tour Bar -->
+    <footer class="hud-footer">
+      <div class="tour-wrapper glass-card">
+        <div class="tour-header">
+          <span>Curated Architectural Vantage Points</span>
+          <span style="font-family: var(--font-arabic); font-size: 1.05rem;">جولة معالم القصر</span>
+        </div>
+        <div id="tour-chips" class="tour-chips">
+          <!-- Populated dynamically by UI script -->
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Touch Mobile Walk Controls -->
+  <div id="touch-controls">
+    <button id="touch-w" class="touch-btn touch-up">▲</button>
+    <button id="touch-a" class="touch-btn touch-left">◀</button>
+    <button id="touch-s" class="touch-btn touch-down">▼</button>
+    <button id="touch-d" class="touch-btn touch-right">▶</button>
+  </div>
+
+  <!-- History & Architecture Modal -->
+  <div id="modal-info" class="modal-backdrop">
+    <div class="modal-card glass-card">
+      <button class="modal-close" id="modal-info-close">✕</button>
+      <h2 class="modal-title">Al Azm Palace · Damascus</h2>
+      <div class="modal-subtitle">قصر العظم · درة العمارة الدمشقية</div>
+      <div class="modal-body">
+        <p>
+          Built in <strong>1749 CE</strong> by <strong>As'ad Pasha al-Azm</strong>, governor of Damascus during the Ottoman era, 
+          Al Azm Palace is considered one of the finest surviving exemplars of 18th-century Damascene domestic architecture.
+        </p>
+        <div class="history-fact">
+          <strong>Ablaq Masonry (الأبلق):</strong> The distinctive alternating courses of local black volcanic basalt from Hauran and cream-colored limestone from the Syrian hills create monumental rhythmic facades.
+        </div>
+        <div class="history-fact">
+          <strong>The Great Iwan (الإيوان الكبير):</strong> A grand monumental vaulted hall facing north toward the central courtyards, designed to catch cooling summer breezes and host dignified guests on its raised marble dais.
+        </div>
+        <div class="history-fact">
+          <strong>Courtyard Water Gardens:</strong> Multi-tiered octagonal fountains and reflection pools are surrounded by fragrant bitter orange trees (<em>naranj</em>), night-blooming jasmine, and bougainvillea.
+        </div>
+        <p>
+          This 3D model brings the palace's architectural nuances to life directly in your web browser, allowing open exploration without requiring Blender or 3D software.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls Guide Modal -->
+  <div id="modal-help" class="modal-backdrop">
+    <div class="modal-card glass-card">
+      <button class="modal-close" id="modal-help-close">✕</button>
+      <h2 class="modal-title">Exploration Controls</h2>
+      <div class="modal-subtitle">دليل التحكم والتنقل</div>
+      <div class="modal-body">
+        <h3 style="color: var(--gold-light); font-size: 1.05rem;">Orbit Mode 🪐</h3>
+        <div class="keybind-grid">
+          <div class="keybind-item"><span class="key-badge">Left Drag</span> 360° Rotate / Orbit</div>
+          <div class="keybind-item"><span class="key-badge">Right Drag</span> Pan View</div>
+          <div class="keybind-item"><span class="key-badge">Scroll</span> Zoom In / Out</div>
+          <div class="keybind-item"><span class="key-badge">Touch Pinch</span> Zoom / Two-finger Pan</div>
+        </div>
+
+        <h3 style="color: var(--gold-light); font-size: 1.05rem; margin-top: 16px;">First-Person Walk Mode 🚶</h3>
+        <div class="keybind-grid">
+          <div class="keybind-item"><span class="key-badge">W / ↑</span> Walk Forward</div>
+          <div class="keybind-item"><span class="key-badge">S / ↓</span> Walk Backward</div>
+          <div class="keybind-item"><span class="key-badge">A / ←</span> Strafe Left</div>
+          <div class="keybind-item"><span class="key-badge">D / →</span> Strafe Right</div>
+          <div class="keybind-item"><span class="key-badge">Shift</span> Sprint Speed</div>
+          <div class="keybind-item"><span class="key-badge">Mouse Look</span> Turn & Tilt Head</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
