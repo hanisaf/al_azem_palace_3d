@@ -245,6 +245,7 @@ html, body {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  pointer-events: auto;
 }
 
 /* Segmented Control (Mode & Atmosphere) */
@@ -256,6 +257,7 @@ html, body {
   border-radius: var(--radius-full);
   padding: 3px;
   gap: 2px;
+  pointer-events: auto;
 }
 
 .seg-btn {
@@ -268,6 +270,7 @@ html, body {
   padding: 7px 15px;
   border-radius: var(--radius-full);
   cursor: pointer;
+  pointer-events: auto;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -276,15 +279,15 @@ html, body {
 
 .seg-btn:hover {
   color: var(--text-main);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .seg-btn.active {
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(184, 134, 11, 0.2));
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.35), rgba(184, 134, 11, 0.25));
   color: var(--gold-light);
   font-weight: 600;
   border: 1px solid var(--border-gold-bright);
-  box-shadow: 0 2px 10px var(--gold-glow);
+  box-shadow: 0 2px 12px var(--gold-glow);
 }
 
 /* Icon Action Buttons */
@@ -633,3 +636,181 @@ html, body {
     display: grid;
   }
 }
+
+/* ==========================================================================
+   Hide UI & Recording Controls
+   ========================================================================== */
+.hud-overlay {
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s;
+}
+
+.hud-overlay.ui-hidden {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.restore-ui-pill {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 999;
+  background: rgba(14, 20, 31, 0.88);
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius-full);
+  padding: 8px 18px;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--gold-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: var(--shadow-card);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.restore-ui-pill:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--gold-primary);
+  box-shadow: var(--shadow-gold);
+  transform: translateY(-2px);
+}
+
+.restore-ui-pill.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-8px);
+}
+
+/* Recording Badge */
+.recording-badge {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 20px;
+  background: rgba(15, 18, 25, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(239, 68, 68, 0.7);
+  border-radius: var(--radius-full);
+  box-shadow: 0 4px 28px rgba(239, 68, 68, 0.4);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.recording-badge.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-12px);
+}
+
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #ef4444;
+  animation: pulseRec 1.2s infinite ease-in-out;
+}
+
+@keyframes pulseRec {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.85); }
+}
+
+.rec-label {
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #ef4444;
+  letter-spacing: 0.1em;
+}
+
+.rec-timer {
+  font-family: monospace;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f8fafc;
+  min-width: 48px;
+  text-align: center;
+}
+
+.rec-stop-btn {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.6);
+  color: #fca5a5;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.rec-stop-btn:hover {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+}
+
+#btn-record.recording {
+  background: rgba(239, 68, 68, 0.28);
+  border-color: #ef4444;
+  color: #fca5a5;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.45);
+  animation: pulseBtn 1.5s infinite;
+}
+
+@keyframes pulseBtn {
+  0%, 100% { border-color: #ef4444; }
+  50% { border-color: rgba(239, 68, 68, 0.3); }
+}
+
+#btn-mic.active {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: #10b981;
+  color: #a7f3d0;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+}
+
+.rec-format-tag {
+  background: rgba(56, 189, 248, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  color: #7dd3fc;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.05em;
+}
+
+.rec-mic-tag {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #6ee7b7;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.03em;
+  transition: all 0.2s ease;
+}
+
+.rec-mic-tag.muted {
+  background: rgba(148, 163, 184, 0.15);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #94a3b8;
+}
+

@@ -83,6 +83,21 @@
           <span>📷</span>
         </button>
 
+        <!-- Microphone Voiceover Toggle -->
+        <button id="btn-mic" class="action-btn" title="Toggle Microphone Voiceover (Press M)">
+          <span>🎙️</span>
+        </button>
+
+        <!-- Record Video Tour -->
+        <button id="btn-record" class="action-btn" title="Record Video Tour (Press R)">
+          <span>📹</span>
+        </button>
+
+        <!-- Hide UI -->
+        <button id="btn-hide-ui" class="action-btn" title="Hide UI (Press H)">
+          <span>👁️</span>
+        </button>
+
         <!-- Palace History Modal -->
         <button id="btn-info" class="action-btn" title="Historical & Architectural Information">
           <span>ℹ️</span>
@@ -149,6 +164,21 @@
     </div>
   </div>
 
+  <!-- Floating Recording Indicator Badge -->
+  <div id="recording-badge" class="recording-badge hidden">
+    <div class="rec-dot"></div>
+    <span class="rec-label">REC</span>
+    <span id="rec-format" class="rec-format-tag">MP4</span>
+    <span id="rec-mic-status" class="rec-mic-tag">🎙️ MIC</span>
+    <span id="rec-timer" class="rec-timer">00:00</span>
+    <button id="btn-stop-rec" class="rec-stop-btn" title="Stop & Download MP4 Video">⏹ Stop</button>
+  </div>
+
+  <!-- Floating Restore UI Button (Shown when UI is hidden) -->
+  <button id="btn-restore-ui" class="restore-ui-pill hidden" title="Show UI (Press H)">
+    <span>👁️</span> Show UI <span class="key-badge">H</span>
+  </button>
+
   <!-- Controls Guide Modal -->
   <div id="modal-help" class="modal-backdrop">
     <div class="modal-card glass-card">
@@ -172,6 +202,13 @@
           <div class="keybind-item"><span class="key-badge">D / →</span> Strafe Right</div>
           <div class="keybind-item"><span class="key-badge">Shift</span> Sprint Speed</div>
           <div class="keybind-item"><span class="key-badge">Mouse Look</span> Turn & Tilt Head</div>
+        </div>
+
+        <h3 style="color: var(--gold-light); font-size: 1.05rem; margin-top: 16px;">Shortcuts & Video Recording 🎬</h3>
+        <div class="keybind-grid">
+          <div class="keybind-item"><span class="key-badge">R</span> Record Video (Start / Stop)</div>
+          <div class="keybind-item"><span class="key-badge">M</span> Toggle Microphone Voiceover</div>
+          <div class="keybind-item"><span class="key-badge">H</span> Hide / Show All UI</div>
         </div>
       </div>
     </div>

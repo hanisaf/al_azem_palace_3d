@@ -1,5 +1,6 @@
 import { LANDMARKS } from './landmarks.js';
 import { ambientAudio } from './audio.js';
+import { VideoRecorder } from './recorder.js';
 
 export class UIController {
   constructor(viewer) {
@@ -11,6 +12,27 @@ export class UIController {
     this.walkBanner = document.getElementById('walk-banner');
     this.tourChipsContainer = document.getElementById('tour-chips');
     this.touchControls = document.getElementById('touch-controls');
+
+    this.hudOverlay = document.querySelector('.hud-overlay');
+    this.hideUiBtn = document.getElementById('btn-hide-ui');
+    this.restoreUiBtn = document.getElementById('btn-restore-ui');
+    this.micBtn = document.getElementById('btn-mic');
+    this.recordBtn = document.getElementById('btn-record');
+    this.recBadge = document.getElementById('recording-badge');
+    this.recTimer = document.getElementById('rec-timer');
+    this.recFormatTag = document.getElementById('rec-format');
+    this.recMicTag = document.getElementById('rec-mic-status');
+    this.recStopBtn = document.getElementById('btn-stop-rec');
+
+    this.isUIHidden = false;
+    this.enableMic = true; // Enabled by default for voiceover audio recording
+    this.recorder = null;
+    if (this.viewer?.renderer?.domElement) {
+      this.recorder = new VideoRecorder(
+        this.viewer.renderer.domElement,
+        () => ambientAudio.getStreamDestination()
+      );
+    }
 
     this.activeLandmarkId = 'overview';
 
@@ -25,6 +47,7 @@ export class UIController {
     this.setupActions();
     this.setupModals();
     this.setupTouchControls();
+    this.updateMicButtonUI();
   }
 
   detectTouch() {
@@ -113,7 +136,7 @@ export class UIController {
         walkBtn?.classList.remove('active');
         this.walkBanner?.classList.remove('visible');
         this.touchControls?.classList.remove('active-touch');
-        this.viewer.controller.setMode('orbit');
+        this.viewer?.controller?.setMode('orbit');
       } else {
         walkBtn?.classList.add('active');
         orbitBtn?.classList.remove('active');
@@ -121,7 +144,7 @@ export class UIController {
         if (document.body.classList.contains('touch-device')) {
           this.touchControls?.classList.add('active-touch');
         }
-        this.viewer.controller.setMode('walk');
+        this.viewer?.controller?.setMode('walk');
       }
     };
 
@@ -137,7 +160,7 @@ export class UIController {
     const setAtmo = (mode, targetBtn) => {
       [dayBtn, sunsetBtn, nightBtn].forEach((btn) => btn?.classList.remove('active'));
       targetBtn?.classList.add('active');
-      this.viewer.setAtmosphere(mode);
+      this.viewer?.setAtmosphere(mode);
     };
 
     dayBtn?.addEventListener('click', () => setAtmo('day', dayBtn));
@@ -145,7 +168,122 @@ export class UIController {
     nightBtn?.addEventListener('click', () => setAtmo('night', nightBtn));
   }
 
+  toggleUI(forceState = undefined) {
+    this.isUIHidden = forceState !== undefined ? forceState : !this.isUIHidden;
+    if (this.hudOverlay) {
+      this.hudOverlay.classList.toggle('ui-hidden', this.isUIHidden);
+    }
+    if (this.restoreUiBtn) {
+      this.restoreUiBtn.classList.toggle('hidden', !this.isUIHidden);
+    }
+  }
+
+  toggleMic() {
+    this.enableMic = !this.enableMic;
+    this.updateMicButtonUI();
+  }
+
+  updateMicButtonUI() {
+    if (this.micBtn) {
+      this.micBtn.classList.toggle('active', this.enableMic);
+      this.micBtn.title = this.enableMic
+        ? 'Microphone Voiceover: ON (Press M to mute)'
+        : 'Microphone Voiceover: OFF (Press M to enable)';
+    }
+    if (this.recMicTag) {
+      this.recMicTag.textContent = this.enableMic ? '🎙️ MIC ON' : '🎙️ MIC OFF';
+      this.recMicTag.classList.toggle('muted', !this.enableMic);
+    }
+  }
+
+  async toggleRecording() {
+    if (!this.recorder) {
+      if (this.viewer?.renderer?.domElement) {
+        this.recorder = new VideoRecorder(
+          this.viewer.renderer.domElement,
+          () => ambientAudio.getStreamDestination()
+        );
+      }
+    }
+    if (!this.recorder) return;
+
+    if (this.recorder.isRecording) {
+      this.stopRecording();
+    } else {
+      await this.startRecording();
+    }
+  }
+
+  async startRecording() {
+    if (!this.recorder) return;
+
+    this.recordBtn?.classList.add('recording');
+    if (this.recordBtn) this.recordBtn.title = 'Stop Recording & Download MP4 (Press R)';
+
+    // Pre-activate badge so user gets immediate visual feedback
+    if (this.recBadge) {
+      this.recBadge.classList.remove('hidden');
+      if (this.recTimer) this.recTimer.textContent = '00:00';
+      if (this.recFormatTag) this.recFormatTag.textContent = 'MP4';
+      if (this.recMicTag) {
+        this.recMicTag.textContent = this.enableMic ? '🎙️ MIC...' : '🎙️ MUTED';
+        this.recMicTag.classList.toggle('muted', !this.enableMic);
+      }
+    }
+
+    try {
+      const res = await this.recorder.start({
+        preferredFormat: 'mp4',
+        enableMic: this.enableMic,
+        onTick: (timeStr, formatStr, hasMic) => {
+          if (this.recTimer) this.recTimer.textContent = timeStr;
+          if (this.recFormatTag) this.recFormatTag.textContent = formatStr;
+          if (this.recMicTag) {
+            this.recMicTag.textContent = hasMic ? '🎙️ MIC ON' : (this.enableMic ? '🎙️ NO MIC' : '🎙️ MUTED');
+            this.recMicTag.classList.toggle('muted', !hasMic);
+          }
+        }
+      });
+
+      if (!res || !res.success) {
+        this.stopRecording();
+      } else {
+        if (this.recFormatTag) this.recFormatTag.textContent = res.format.toUpperCase();
+        if (this.recMicTag) {
+          this.recMicTag.textContent = res.hasMic ? '🎙️ MIC ON' : (this.enableMic ? '🎙️ NO MIC' : '🎙️ MUTED');
+          this.recMicTag.classList.toggle('muted', !res.hasMic);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to start recording:', err);
+      this.stopRecording();
+    }
+  }
+
+  stopRecording() {
+    if (!this.recorder || !this.recorder.isRecording) {
+      this.recordBtn?.classList.remove('recording');
+      this.recBadge?.classList.add('hidden');
+      return;
+    }
+    this.recorder.stop();
+    this.recordBtn?.classList.remove('recording');
+    if (this.recordBtn) this.recordBtn.title = 'Record Video Tour (Press R)';
+    this.recBadge?.classList.add('hidden');
+  }
+
   setupActions() {
+    // Hide UI
+    this.hideUiBtn?.addEventListener('click', () => this.toggleUI(true));
+    this.restoreUiBtn?.addEventListener('click', () => this.toggleUI(false));
+
+    // Microphone Voiceover
+    this.micBtn?.addEventListener('click', () => this.toggleMic());
+
+    // Video Recording
+    this.recordBtn?.addEventListener('click', () => this.toggleRecording());
+    this.recStopBtn?.addEventListener('click', () => this.stopRecording());
+
     // Courtyard Sound
     const audioBtn = document.getElementById('btn-audio');
     audioBtn?.addEventListener('click', () => {
@@ -167,6 +305,23 @@ export class UIController {
         document.documentElement.requestFullscreen?.();
       } else {
         document.exitFullscreen?.();
+      }
+    });
+
+    // Global Hotkeys (H: Hide UI, R: Record Video, M: Toggle Microphone)
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const key = e.key ? e.key.toLowerCase() : '';
+
+      if (key === 'h') {
+        e.preventDefault();
+        this.toggleUI();
+      } else if (key === 'r') {
+        e.preventDefault();
+        this.toggleRecording();
+      } else if (key === 'm') {
+        e.preventDefault();
+        this.toggleMic();
       }
     });
   }

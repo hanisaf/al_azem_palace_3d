@@ -51,52 +51,40 @@ export class NavigationController {
   setupKeyboard() {
     window.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      switch (e.code) {
-        case 'KeyW':
-        case 'ArrowUp':
-          this.moveState.forward = true;
-          break;
-        case 'KeyS':
-        case 'ArrowDown':
-          this.moveState.backward = true;
-          break;
-        case 'KeyA':
-        case 'ArrowLeft':
-          this.moveState.left = true;
-          break;
-        case 'KeyD':
-        case 'ArrowRight':
-          this.moveState.right = true;
-          break;
-        case 'ShiftLeft':
-        case 'ShiftRight':
-          this.moveState.sprint = true;
-          break;
+      const key = e.key ? e.key.toLowerCase() : '';
+      if (e.code === 'KeyW' || e.code === 'ArrowUp' || key === 'w' || key === 'arrowup') {
+        this.moveState.forward = true;
+      }
+      if (e.code === 'KeyS' || e.code === 'ArrowDown' || key === 's' || key === 'arrowdown') {
+        this.moveState.backward = true;
+      }
+      if (e.code === 'KeyA' || e.code === 'ArrowLeft' || key === 'a' || key === 'arrowleft') {
+        this.moveState.left = true;
+      }
+      if (e.code === 'KeyD' || e.code === 'ArrowRight' || key === 'd' || key === 'arrowright') {
+        this.moveState.right = true;
+      }
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.shiftKey) {
+        this.moveState.sprint = true;
       }
     });
 
     window.addEventListener('keyup', (e) => {
-      switch (e.code) {
-        case 'KeyW':
-        case 'ArrowUp':
-          this.moveState.forward = false;
-          break;
-        case 'KeyS':
-        case 'ArrowDown':
-          this.moveState.backward = false;
-          break;
-        case 'KeyA':
-        case 'ArrowLeft':
-          this.moveState.left = false;
-          break;
-        case 'KeyD':
-        case 'ArrowRight':
-          this.moveState.right = false;
-          break;
-        case 'ShiftLeft':
-        case 'ShiftRight':
-          this.moveState.sprint = false;
-          break;
+      const key = e.key ? e.key.toLowerCase() : '';
+      if (e.code === 'KeyW' || e.code === 'ArrowUp' || key === 'w' || key === 'arrowup') {
+        this.moveState.forward = false;
+      }
+      if (e.code === 'KeyS' || e.code === 'ArrowDown' || key === 's' || key === 'arrowdown') {
+        this.moveState.backward = false;
+      }
+      if (e.code === 'KeyA' || e.code === 'ArrowLeft' || key === 'a' || key === 'arrowleft') {
+        this.moveState.left = false;
+      }
+      if (e.code === 'KeyD' || e.code === 'ArrowRight' || key === 'd' || key === 'arrowright') {
+        this.moveState.right = false;
+      }
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || !e.shiftKey) {
+        this.moveState.sprint = false;
       }
     });
   }
@@ -114,7 +102,7 @@ export class NavigationController {
       this.isMouseDown = false;
     });
 
-    this.domElement.addEventListener('mousemove', (e) => {
+    window.addEventListener('mousemove', (e) => {
       if (this.mode !== 'walk') return;
 
       let dx = 0;
@@ -131,7 +119,7 @@ export class NavigationController {
       }
 
       if (dx !== 0 || dy !== 0) {
-        const sensitivity = 0.0024;
+        const sensitivity = 0.0028;
         this.walkEuler.y -= dx * sensitivity;
         this.walkEuler.x -= dy * sensitivity;
         // Clamp vertical pitch to avoid flipping
@@ -196,11 +184,22 @@ export class NavigationController {
       this.orbit.update();
     } else {
       this.orbit.enabled = false;
-      // Snap camera down to human eye level
-      this.camera.position.y = this.eyeHeight;
-      this.clampPosition(this.camera.position);
-      this.walkEuler.setFromQuaternion(this.camera.quaternion, 'YXZ');
-      this.walkEuler.z = 0; // Keep horizon level
+      // If camera was in high aerial view or out of bounds, spawn in central courtyard facing South Iwan
+      if (
+        this.camera.position.y > 3.5 ||
+        Math.abs(this.camera.position.x) > 13.0 ||
+        Math.abs(this.camera.position.z) > 25.0
+      ) {
+        this.camera.position.set(0.0, this.eyeHeight, -6.0);
+        this.walkEuler.set(0, 0, 0, 'YXZ');
+      } else {
+        this.camera.position.y = this.eyeHeight;
+        this.clampPosition(this.camera.position);
+        this.walkEuler.setFromQuaternion(this.camera.quaternion, 'YXZ');
+        this.walkEuler.x = 0; // Level gaze
+        this.walkEuler.z = 0;
+      }
+      this.camera.quaternion.setFromEuler(this.walkEuler);
     }
   }
 

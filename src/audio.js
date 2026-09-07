@@ -96,6 +96,15 @@ class AmbientAudio {
     }
     return this.isPlaying;
   }
+
+  getStreamDestination() {
+    if (!this.ctx || !this.gainNode) return null;
+    if (!this.streamDest) {
+      this.streamDest = this.ctx.createMediaStreamDestination();
+      this.gainNode.connect(this.streamDest);
+    }
+    return this.streamDest;
+  }
 }
 
 export const ambientAudio = new AmbientAudio();

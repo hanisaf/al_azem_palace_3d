@@ -187,12 +187,12 @@ export class PalaceViewer {
   setupEnvironment() {
     // Ground plane matching Syrian limestone sand
     const groundGeo = new THREE.PlaneGeometry(400, 400);
-    const groundMat = new THREE.MeshStandardMaterial({
+    this.groundMat = new THREE.MeshStandardMaterial({
       color: 0x9c8e7b,
       roughness: 0.95,
       metalness: 0.02
     });
-    const ground = new THREE.Mesh(groundGeo, groundMat);
+    const ground = new THREE.Mesh(groundGeo, this.groundMat);
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.01;
     ground.receiveShadow = true;
@@ -207,6 +207,7 @@ export class PalaceViewer {
     loader.setDRACOLoader(dracoLoader);
 
     const modelUrl = 'palace.glb';
+    this.lanternMeshes = [];
 
     loader.load(
       modelUrl,
@@ -219,6 +220,9 @@ export class PalaceViewer {
             child.receiveShadow = true;
 
             const isMortarBacking = child.name && child.name.includes('Mortar backing');
+            if (child.name && child.name.toLowerCase().includes('lantern')) {
+              this.lanternMeshes.push(child);
+            }
 
             const materials = Array.isArray(child.material) ? child.material : [child.material];
             materials.forEach((mat) => {
@@ -286,63 +290,87 @@ export class PalaceViewer {
     this.currentAtmosphere = mode;
 
     if (mode === 'day') {
-      this.scene.background.set('#cce2f2');
-      this.scene.fog.color.set('#cce2f2');
+      this.scene.background.set(0xcce2f2);
+      this.scene.fog.color.set(0xcce2f2);
       this.renderer.toneMappingExposure = 1.0;
 
-      this.dirLight.color.set(0xffeedb);
+      this.dirLight.color.setHex(0xffeedb);
       this.dirLight.intensity = 2.5;
       this.dirLight.position.set(-35, 46, 15.5);
 
-      this.hemiLight.color.set(0x9fc4e8);
-      this.hemiLight.groundColor.set(0x917f69);
+      this.hemiLight.color.setHex(0x9fc4e8);
+      this.hemiLight.groundColor.setHex(0x917f69);
       this.hemiLight.intensity = 0.75;
 
-      this.iwanBounceLight.intensity = 1.8;
-      this.ambientLight.intensity = 0.35;
+      if (this.iwanBounceLight) this.iwanBounceLight.intensity = 1.8;
+      if (this.ambientLight) this.ambientLight.intensity = 0.35;
+      if (this.groundMat) this.groundMat.color.setHex(0x9c8e7b);
 
       this.lanternLights.forEach(({ light }) => {
         light.intensity = 0;
       });
+      this.lanternMeshes.forEach((mesh) => {
+        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        mats.forEach((m) => {
+          m.emissive?.setHex(0x000000);
+          m.emissiveIntensity = 0;
+        });
+      });
     } else if (mode === 'sunset') {
       // Golden Hour
-      this.scene.background.set('#e88a48');
-      this.scene.fog.color.set('#dc7d3d');
+      this.scene.background.set(0xe88a48);
+      this.scene.fog.color.set(0xdc7d3d);
       this.renderer.toneMappingExposure = 1.15;
 
-      this.dirLight.color.set(0xff8030);
-      this.dirLight.intensity = 2.8;
+      this.dirLight.color.setHex(0xff8030);
+      this.dirLight.intensity = 3.2;
       this.dirLight.position.set(-45, 18, 10);
 
-      this.hemiLight.color.set(0xffa873);
-      this.hemiLight.groundColor.set(0x754020);
-      this.hemiLight.intensity = 0.85;
+      this.hemiLight.color.setHex(0xffa873);
+      this.hemiLight.groundColor.setHex(0x754020);
+      this.hemiLight.intensity = 0.95;
 
-      this.iwanBounceLight.intensity = 2.2;
-      this.ambientLight.intensity = 0.35;
+      if (this.iwanBounceLight) this.iwanBounceLight.intensity = 2.4;
+      if (this.ambientLight) this.ambientLight.intensity = 0.4;
+      if (this.groundMat) this.groundMat.color.setHex(0x7a4e28);
 
       this.lanternLights.forEach(({ light, maxIntensity }) => {
-        light.intensity = maxIntensity * 0.45;
+        light.intensity = maxIntensity * 0.5;
+      });
+      this.lanternMeshes.forEach((mesh) => {
+        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        mats.forEach((m) => {
+          m.emissive?.setHex(0xff8822);
+          m.emissiveIntensity = 1.2;
+        });
       });
     } else if (mode === 'night') {
       // Ottoman Night
-      this.scene.background.set('#0a111a');
-      this.scene.fog.color.set('#0a111a');
-      this.renderer.toneMappingExposure = 1.25;
+      this.scene.background.set(0x0a111a);
+      this.scene.fog.color.set(0x0a111a);
+      this.renderer.toneMappingExposure = 1.35;
 
-      this.dirLight.color.set(0x627d99);
+      this.dirLight.color.setHex(0x5a7694);
       this.dirLight.intensity = 0.35;
       this.dirLight.position.set(-25, 40, -25);
 
-      this.hemiLight.color.set(0x223348);
-      this.hemiLight.groundColor.set(0x10151c);
-      this.hemiLight.intensity = 0.3;
+      this.hemiLight.color.setHex(0x1a2638);
+      this.hemiLight.groundColor.setHex(0x0c1016);
+      this.hemiLight.intensity = 0.25;
 
-      this.iwanBounceLight.intensity = 0.4;
-      this.ambientLight.intensity = 0.2;
+      if (this.iwanBounceLight) this.iwanBounceLight.intensity = 0.3;
+      if (this.ambientLight) this.ambientLight.intensity = 0.15;
+      if (this.groundMat) this.groundMat.color.setHex(0x10151c);
 
       this.lanternLights.forEach(({ light, maxIntensity }) => {
-        light.intensity = maxIntensity;
+        light.intensity = maxIntensity * 1.5;
+      });
+      this.lanternMeshes.forEach((mesh) => {
+        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        mats.forEach((m) => {
+          m.emissive?.setHex(0xffaa33);
+          m.emissiveIntensity = 3.5;
+        });
       });
     }
   }

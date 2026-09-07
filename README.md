@@ -23,7 +23,14 @@ Built with Three.js, Vite, and Vanilla CSS to allow anyone to walk through the c
   - 💧 **Courtyard Reflection Pool (بركة الفناء)** (Water basin reflecting facade)
   - 🏛️ **North Riwaq Colonnade (رواق الأعمدة)** (Basalt columns and pointed striped arches)
   - 🏺 **Hammam Domes & Rooftops (قباب الحمام)** (Glazed oculi glass domes)
-- **Courtyard Sound Ambience (⛲)**: Toggleable procedural gentle trickling fountain water synthesized in real-time via the Web Audio API (no external audio files required).
+- **Video Recording & Instant Download (📹 / Key: R)**:
+  - Record cinematic video fly-throughs or walkthrough tours directly inside the browser using standard `canvas.captureStream()` and `MediaRecorder`.
+  - Floating live recording timer with pulsing indicator.
+  - Automatically mixes in synthesized courtyard fountain water audio if sound is active.
+  - Automatically exports and downloads `Al-Azm-Palace-Tour-[timestamp].webm` (or `.mp4`) when stopping.
+- **Cinematic Clean View / Hide UI (👁️ / Key: H)**:
+  - Press <kbd>H</kbd> or click the 👁️ button to hide all HUD elements for an unobstructed, museum-grade view (perfect for recording or full-screen viewing).
+  - Floating restore pill allows easy unhiding on any device or press <kbd>H</kbd> again.
 - **Screenshot Tool (📷)**: One-click high-resolution photo capture tool that exports directly to PNG.
 - **Museum Guide & Info (ℹ️)**: Historical context on As'ad Pasha al-Azm, Damascene ablaq masonry, and iwan design.
 
